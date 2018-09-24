@@ -97,6 +97,7 @@ __device__ void m_cycle(uint_32t *p, uint_32t *v, int x, int y) {
   uint32_t v4 = vf(4,x);
   uint32_t v0 = vf(0,x);
   vf(7, x) += (y ? hf(x) : p[x]) + k_0[x+y] + s_1(v4) + ch(v4, vf(5,x), vf(6,x));
+  //vf(7, x) = __vadd4(vf(7,x), (y ? hf(x) : p[x]) + k_0[x+y] + s_1(v4) + ch(v4, vf(5,x), vf(6,x)));
   vf(3, x) += vf(7,x);
   vf(7, x) += s_0(v0) + maj(v0, vf(1, x), vf(2, x));
 }
@@ -111,13 +112,12 @@ __device__ VOID_RETURN sha256_compile(sha256_ctx ctx[1])
 {
     int j, mp;
     uint_32t *p = ctx->wbuf, v[8];
-
     memcpy(v, ctx->hash, 8 * sizeof(uint_32t));
 
     for(j = 0; j < 64; j+=16)
     {
 	for(mp = 0; mp < 16; mp++) {
-          m_cycle(p, v, mp, j);
+		m_cycle(p, v, mp, j);
         }
 //	printf("%02d: [ %x %x %x ] [ %x %x %x ] [ %x %x %x ] [ %x %x %x ] [ %x %x %x ] [ %x ]\n", j, &p);
 //        printf("%02d: [ ", j);
@@ -165,10 +165,11 @@ __device__ VOID_RETURN sha256_hash(const unsigned char data[], unsigned long len
 */
 }
 
+/*
 __device__ void sha256_getstate_c(sha256_ctx ctx[1], sha256_ctx octx[1]) {
   memcpy(octx, ctx, sizeof(sha256_ctx));
 }
-
+*/
 __device__ void sha256_setstate_c(sha256_ctx ctx[1], sha256_ctx ictx) {
   memcpy(ctx, &ictx, sizeof(sha256_ctx));
 }
@@ -232,7 +233,15 @@ __constant__ const uint_32t i256[8] =
 __device__ VOID_RETURN sha256_begin(sha256_ctx ctx[1])
 {
     ctx->count[0] = ctx->count[1] = 0;
-    memcpy(ctx->hash, i256, 8 * sizeof(uint_32t));
+    ctx->hash[0] = 0x6a09e667ul;
+    ctx->hash[1] = 0xbb67ae85ul;
+    ctx->hash[2] = 0x3c6ef372ul;
+    ctx->hash[3] = 0xa54ff53aul;
+    ctx->hash[4] = 0x510e527ful;
+    ctx->hash[5] = 0x9b05688cul;
+    ctx->hash[6] = 0x1f83d9abul;
+    ctx->hash[7] = 0x5be0cd19ul;
+//    memcpy(ctx->hash, i256, 8 * sizeof(uint_32t));
 }
 
 __device__ VOID_RETURN sha256_end(unsigned char hval[], sha256_ctx ctx[1])
