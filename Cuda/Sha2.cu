@@ -16,7 +16,9 @@ extern "C"
 #endif
 
 #define rotl32(x,n)   (((x) << n) | ((x) >> (32 - n)))
-#define rotr32(x,n)   (((x) >> n) | ((x) << (32 - n)))
+// #define rotr32(x,n)   (((x) >> n) | ((x) << (32 - n)))
+#define rotr32(x, n) __funnelshift_r( (x), (x), (n) )
+//#define rotr32(x,n)  { unsigned int * y = __byte_perm(x, x, 0x3210+0x1111*(n/8)); printf("%x", y); return y; }
 
 #if !defined(bswap_32)
 #define bswap_32(x) __byte_perm(x, x, 0x0123);
@@ -38,15 +40,8 @@ extern "C"
 #define hf(i) (p[i & 15] += \
     g_1(p[(i + 14) & 15]) + p[(i + 9) & 15] + g_0(p[(i + 1) & 15]))
 
-/*#define v_cycle(i,j)                                \
-    vf(7,i) += (j ? hf(i) : p[i]) + k_0[i+j]        \
-    + s_1(vf(4,i)) + ch(vf(4,i),vf(5,i),vf(6,i));   \
-    vf(3,i) += vf(7,i);                             \
-    vf(7,i) += s_0(vf(0,i))+ maj(vf(0,i),vf(1,i),vf(2,i))
-*/
 
 #if defined(SHA_224) || defined(SHA_256)
-
 #define SHA256_MASK (SHA256_BLOCK_SIZE - 1)
 
 #if defined(SWAP_BYTES)
@@ -97,7 +92,6 @@ __device__ void m_cycle(uint_32t *p, uint_32t *v, int x, int y) {
   uint32_t v4 = vf(4,x);
   uint32_t v0 = vf(0,x);
   vf(7, x) += (y ? hf(x) : p[x]) + k_0[x+y] + s_1(v4) + ch(v4, vf(5,x), vf(6,x));
-  //vf(7, x) = __vadd4(vf(7,x), (y ? hf(x) : p[x]) + k_0[x+y] + s_1(v4) + ch(v4, vf(5,x), vf(6,x)));
   vf(3, x) += vf(7,x);
   vf(7, x) += s_0(v0) + maj(v0, vf(1, x), vf(2, x));
 }
@@ -165,11 +159,6 @@ __device__ VOID_RETURN sha256_hash(const unsigned char data[], unsigned long len
 */
 }
 
-/*
-__device__ void sha256_getstate_c(sha256_ctx ctx[1], sha256_ctx octx[1]) {
-  memcpy(octx, ctx, sizeof(sha256_ctx));
-}
-*/
 __device__ void sha256_setstate_c(sha256_ctx ctx[1], sha256_ctx ictx) {
   memcpy(ctx, &ictx, sizeof(sha256_ctx));
 }

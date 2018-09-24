@@ -35,7 +35,7 @@ int main() {
   cudaError_t err;
   int device = 0;
   int numSMs;
-  const int N = 100000;
+  const int N = 1000;
 
   cudaDeviceProp props;
   err = cudaGetDeviceProperties(&props, device);
