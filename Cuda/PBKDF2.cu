@@ -66,6 +66,6 @@ __device__ void cuda_derive_u_sha256 (unsigned char *pwd, int pwd_len, unsigned 
   }
 }
 
-__device__ void cuda_derive_key_sha256(unsigned char *pwd, int pwd_len, unsigned char *salt, int iterations, unsigned char *dk, int dklen) {
+__device__ void cuda_derive_key_sha256(unsigned char *pwd, int pwd_len, unsigned char *salt, int iterations, unsigned char* dk, int dklen) {
   cuda_derive_u_sha256(pwd, pwd_len, salt, iterations, dk);
 }

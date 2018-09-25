@@ -16,8 +16,8 @@ extern "C"
 #endif
 
 #define rotl32(x,n)   (((x) << n) | ((x) >> (32 - n)))
-// #define rotr32(x,n)   (((x) >> n) | ((x) << (32 - n)))
-#define rotr32(x, n) __funnelshift_r( (x), (x), (n) )
+ #define rotr32(x,n)   (((x) >> n) | ((x) << (32 - n)))
+//#define rotr32(x, n) __funnelshift_r( (x), (x), (n) )
 //#define rotr32(x,n)  { unsigned int * y = __byte_perm(x, x, 0x3210+0x1111*(n/8)); printf("%x", y); return y; }
 
 #if !defined(bswap_32)
