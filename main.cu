@@ -18,7 +18,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-__global__ void PBKDF2Kernel(int n, int c, unsigned char* out) {
+__global__ void PBKDF2Kernel(int n, int c, unsigned char ** out) {
   unsigned char salt[17] = {
 	230,  88,  20, 228,
 	 56,  39,  89, 248,
@@ -29,7 +29,7 @@ __global__ void PBKDF2Kernel(int n, int c, unsigned char* out) {
   unsigned char passwd[22] = "governor washout beak";
   int pwd_len = sizeof(passwd) - 1;
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i<n; i += blockDim.x * gridDim.x) {
-    cuda_derive_key_sha256(passwd, pwd_len, salt, c, (unsigned char*)&out[i], SHA256_DIGESTSIZE);
+    cuda_derive_key_sha256(passwd, pwd_len, salt, c, (unsigned char *)&out[i], SHA256_DIGESTSIZE);
   }
 }
 
@@ -64,17 +64,17 @@ int main() {
   // Round up according to array size 
   gridSize = (N + blockSize - 1) / blockSize; 
 
-  unsigned char *finalDest;
+  unsigned char **finalDest;
   unsigned char *cpuDest;
-  cpuDest = (unsigned char *)malloc(BLOCK_SIZE*SHA256_DIGESTSIZE*sizeof(unsigned char));
-  cudaMalloc((void**)&finalDest, BLOCK_SIZE*SHA256_DIGESTSIZE*sizeof(unsigned char));
+  cpuDest = (unsigned char *)malloc(BLOCK_SIZE*SHA256_DIGESTSIZE*sizeof(unsigned char*));
+  cudaMalloc((void**)&finalDest, BLOCK_SIZE*SHA256_DIGESTSIZE*sizeof(unsigned char*));
   ERRCHECK(cudaGetLastError());
   printf("SMs: %d, X: %d, Y: %d\n", numSMs, 32*numSMs, 512);
   printf("grid: %d, min grid: %d, block: %d\n", gridSize, minGridSize, blockSize);
   PBKDF2Kernel<<<GRID_SIZE,BLOCK_SIZE>>>(N, 100000, finalDest);
   ERRCHECK(cudaDeviceSynchronize());
   ERRCHECK(cudaGetLastError());
-  cudaMemcpy(cpuDest, finalDest, BLOCK_SIZE*SHA256_DIGESTSIZE*sizeof(unsigned char), cudaMemcpyDeviceToHost);
+  cudaMemcpy(cpuDest, finalDest, BLOCK_SIZE*SHA256_DIGESTSIZE*sizeof(unsigned char*), cudaMemcpyDeviceToHost);
   ERRCHECK(cudaGetLastError());
 
 /*  for(size_t i = &cpuDest[0]; i < &cpuDest[BLOCK_SIZE-1]; i++) {
@@ -85,11 +85,17 @@ int main() {
     printf("\n");
   }*/
   for(int i = 0; i < BLOCK_SIZE; i++) {
-    for(int c = 0; c < SHA256_DIGESTSIZE; c++) {
-      printf("%02x ", (&cpuDest[i])[c]);
+    for(int j = 0; j < SHA256_DIGESTSIZE; j++) {
+      printf("%02x ", cpuDest[i*SHA256_DIGESTSIZE + j]);
     }
     printf("\n");
   }
+//  for(unsigned char *hash = &cpuDest[0][0]; hash <= &cpuDest[BLOCK_SIZE][SHA256_DIGESTSIZE]; hash++) {
+//    for(int c = 0; c < SHA256_DIGESTSIZE; c++) {
+//      printf("%02x ", (&hash));
+//    }
+//    printf("\n");
+//  }
   printf("\n");
   cudaFree(finalDest);
   free(cpuDest);
