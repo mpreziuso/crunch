@@ -16,9 +16,8 @@ extern "C"
 #endif
 
 #define rotl32(x,n)   (((x) << n) | ((x) >> (32 - n)))
-//#define rotr32(x,n)   (((x) >> n) | ((x) << (32 - n)))
-#define rotr32(x, n) __funnelshift_r( (x), (x), (n) )
-//#define rotr32(x,n)  { unsigned int * y = __byte_perm(x, x, 0x3210+0x1111*(n/8)); printf("%x", y); return y; }
+#define rotr32(x,n)   (((x) >> n) | ((x) << (32 - n)))
+//#define rotr32(x, n) __funnelshift_r( (x), (x), (n) )
 
 #if !defined(bswap_32)
 #define bswap_32(x) __byte_perm(x, x, 0x0123);
@@ -43,20 +42,20 @@ extern "C"
 
 #if defined(SHA_224) || defined(SHA_256)
 #define SHA256_MASK (SHA256_BLOCK_SIZE - 1)
-
 #if defined(SWAP_BYTES)
 #define bsw_32(p,n) \
     { int _i = (n); while(_i--) ((uint_32t*)p)[_i] = bswap_32(((uint_32t*)p)[_i]); }
 #else
 #define bsw_32(p,n)
 #endif
-//__device__ void bsw_32(uint_32t *p, uint_32t i) {
-//  
-//  while(i--) {
-//    p[i] = __byte_perm(p[i], p[i], 0x0123);
-//  }
-//}
-
+/*__device__ void bsw_32(uint_32t *p, uint_32t i) {
+  
+  while(i--) {
+    p[i] = bswap_32(p[i]);
+//__byte_perm(p[i], p[i], 0x0123);
+  }
+}
+*/
 #define s_0(x)  (rotr32((x),  2) ^ rotr32((x), 13) ^ rotr32((x), 22))
 #define s_1(x)  (rotr32((x),  6) ^ rotr32((x), 11) ^ rotr32((x), 25))
 #define g_0(x)  (rotr32((x),  7) ^ rotr32((x), 18) ^ ((x) >>  3))
@@ -91,9 +90,9 @@ __constant__ const uint_32t k256[64] =
 __device__ void m_cycle(uint_32t *p, uint_32t *v, int x, int y) {
   uint32_t v4 = vf(4,x);
   uint32_t v0 = vf(0,x);
-  vf(7, x) += (y ? hf(x) : p[x]) + k_0[x+y] + s_1(v4) + ch(v4, vf(5,x), vf(6,x));
+  vf(7,x) += (y ? hf(x) : p[x]) + k_0[x+y] + s_1(v4) + ch(v4, vf(5,x), vf(6,x));
   vf(3, x) += vf(7,x);
-  vf(7, x) += s_0(v0) + maj(v0, vf(1, x), vf(2, x));
+  vf(7,x) += s_0(v0) + maj(v0, vf(1, x), vf(2, x));
 }
 
 /* Compile 64 bytes of hash data into SHA256 digest value   */
@@ -143,20 +142,6 @@ __device__ VOID_RETURN sha256_hash(const unsigned char data[], unsigned long len
         sha256_compile(ctx);
     }
     memcpy(((unsigned char*)ctx->wbuf) + pos, sp, len);
-/*    printf("SET count [");
-    for(int i = 0; i < 2; i++) {
-      printf("%x ", ctx->count[i]);
-    }
-    printf("]\nSET buf [");
-    for(int i = 0; i < 16; i++) {
-      printf("%x ", ctx->wbuf[i]);
-    }
-    printf("\nSET hash [");
-    for(int i = 0; i < 8; i++) {
-      printf("%x ", ctx->hash[i]);
-    }
-    printf("]\n");
-*/
 }
 
 __device__ void sha256_setstate_c(sha256_ctx ctx[1], sha256_ctx ictx) {
