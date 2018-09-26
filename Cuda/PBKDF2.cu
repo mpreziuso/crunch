@@ -15,10 +15,10 @@ __constant__ __device__ const unsigned char cuda_init_derive[32] = {
 };
 
 __device__ void hmac_sha256_c(sha256_ctx actx, sha256_ctx bctx, unsigned char *d, int ld, unsigned char *out, unsigned char* scratch) {
-  sha256_ctx octx;
-
-  sha256_hash (d, ld, &actx);
-  sha256_end (scratch, &actx);
+  sha256_ctx ictx, octx;
+  memcpy(&ictx,&actx, sizeof(sha256_ctx));
+  sha256_hash (d, ld, &ictx);
+  sha256_end (scratch, &ictx);
 
   memcpy(&octx, &bctx, sizeof(sha256_ctx));
   sha256_hash (scratch, SHA256_DIGESTSIZE, &octx);

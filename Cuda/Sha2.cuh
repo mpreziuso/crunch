@@ -1,25 +1,12 @@
 #ifndef _SHA2_H
 #define _SHA2_H
 
-#include "Common/Tcdefs.h"
-#include "Common/Endian.h"
+//#include "Common/Tcdefs.h"
+//#include "Common/Endian.h"
 
-//#define SHA_64BIT
-
-/* define the hash functions that you need  */
 #define SHA_2   /* for dynamic hash length  */
 #define SHA_224
 #define SHA_256
-#ifdef SHA_64BIT
-#  define SHA_384
-#  define SHA_512
-#  define NEED_UINT_64T
-#endif
-
-#ifndef EXIT_SUCCESS
-#define EXIT_SUCCESS    0
-#define EXIT_FAILURE    1
-#endif
 
 #define li_64(h) 0x##h##ull
 
@@ -30,6 +17,62 @@
 extern "C"
 {
 #endif
+
+
+#include <inttypes.h>
+#include <limits.h>
+
+typedef int8_t int8;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int64_t int64;
+typedef uint8_t byte;
+//typedef uint16_t uint16;
+//typedef uint32_t uint32;
+typedef uint64_t uint64;
+
+#if UCHAR_MAX != 0xffU
+#error UCHAR_MAX != 0xff
+#endif
+#define __int8 char
+
+#if USHRT_MAX != 0xffffU
+#error USHRT_MAX != 0xffff
+#endif
+#define __int16 short
+
+#if UINT_MAX != 0xffffffffU
+#error UINT_MAX != 0xffffffff
+#endif
+#define __int32 int
+
+#define __int64 long long
+
+//typedef uint64 TC_LARGEST_COMPILER_UINT;
+#ifndef TC_LARGEST_COMPILER_UINT
+#       ifdef TC_NO_COMPILER_INT64
+                typedef unsigned __int32        TC_LARGEST_COMPILER_UINT;
+#       else
+                typedef unsigned __int64        TC_LARGEST_COMPILER_UINT;
+#       endif
+#endif
+
+#define BOOL int
+#define LONG long
+#ifndef FALSE
+#define FALSE 0
+#define TRUE 1
+#endif
+
+// Integer types required by Cryptolib
+typedef unsigned __int8 uint_8t;
+typedef unsigned __int16 uint_16t;
+typedef unsigned __int32 uint_32t;
+#ifndef TC_NO_COMPILER_INT64
+typedef uint64 uint_64t;
+#endif
+
+
 
 /* Note that the following function prototypes are the same */
 /* for both the bit and byte oriented implementations.  But */

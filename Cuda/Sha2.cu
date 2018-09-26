@@ -1,4 +1,4 @@
-#include "Common/Endian.h"
+//#include "Common/Endian.h"
 #ifndef PLATFORM_BYTE_ORDER
 #define PLATFORM_BYTE_ORDER BYTE_ORDER
 #endif

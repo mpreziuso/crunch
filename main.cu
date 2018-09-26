@@ -31,7 +31,6 @@ int main() {
   cudaError_t err;
   int device = 0;
   int numSMs;
-  //const int N = 100000;
 
   cudaDeviceProp props;
   err = cudaGetDeviceProperties(&props, device);
@@ -58,8 +57,6 @@ int main() {
   // Round up according to array size 
   gridSize = (N + blockSize - 1) / blockSize; 
   unsigned char *finalDest;
-//  unsigned char *cpuDest;
-//  cpuDest = (unsigned char *)malloc(N*SHA256_DIGESTSIZE);
   cudaMallocManaged((void**)&finalDest, N*SHA256_DIGESTSIZE);
   ERRCHECK(cudaGetLastError());
   printf("SMs: %d, X: %d, Y: %d\n", numSMs, 32*numSMs, 512);
@@ -67,8 +64,6 @@ int main() {
   PBKDF2Kernel<<<gridSize, blockSize>>>(N, finalDest);
   ERRCHECK(cudaDeviceSynchronize());
   ERRCHECK(cudaGetLastError());
-  //cudaMemcpy(cpuDest, finalDest, N*SHA256_DIGESTSIZE, cudaMemcpyDeviceToHost);
-  //ERRCHECK(cudaGetLastError());
   
   for(int i = 0; i < N; i++) {
     for(int j = 0; j < SHA256_DIGESTSIZE; j++) {
@@ -78,7 +73,6 @@ int main() {
   }
   
   cudaFree(finalDest);
-  //free(cpuDest);
   cudaDeviceReset();
   return 0;
 }
