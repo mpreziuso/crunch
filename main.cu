@@ -23,7 +23,7 @@ __global__ void PBKDF2Kernel(int n, unsigned char* out) {
   unsigned char passwd[22] = "governor washout beak";
   int pwd_len = sizeof(passwd) - 1;
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i<n; i += blockDim.x * gridDim.x) {
-    cuda_derive_key_sha256(passwd, pwd_len, &out[SHA256_DIGESTSIZE*i]);
+    cuda_derive_u_sha256(passwd, pwd_len, &out[SHA256_DIGESTSIZE*i]);
   }
 }
 

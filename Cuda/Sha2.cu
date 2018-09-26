@@ -144,10 +144,6 @@ __device__ VOID_RETURN sha256_hash(const unsigned char data[], unsigned long len
     memcpy(((unsigned char*)ctx->wbuf) + pos, sp, len);
 }
 
-__device__ void sha256_setstate_c(sha256_ctx ctx[1], sha256_ctx ictx) {
-  memcpy(ctx, &ictx, sizeof(sha256_ctx));
-}
-
 
 /* SHA256 Final padding and digest calculation  */
 
@@ -189,7 +185,7 @@ __device__ static void sha_end1(unsigned char hval[], sha256_ctx ctx[1], const u
 
     /* extract the hash value as bytes in case the hash buffer is   */
     /* mislaigned for 32-bit words                                  */
-    // #pragma unroll
+    //#pragma unroll
     for(i = 0; i < hlen; ++i)
         hval[i] = (unsigned char)(ctx->hash[i >> 2] >> (8 * (~i & 3)));
 }
