@@ -46,7 +46,7 @@ __device__ void cuda_derive_u_sha256 (unsigned char *pwd, int pwd_len, unsigned 
   hmac_sha256_c(ictx, octx, (unsigned char *)cuda_init_derive, SALT_SIZE+4, j, scratch);
   memcpy(u, j, SHA256_DIGESTSIZE);
 
-  for(int c = 0; c < ITERATIONS; ++c) {
+  for(int c = 1; c < ITERATIONS; c++) {
     hmac_sha256_c(ictx, octx, j, SHA256_DIGESTSIZE, j, scratch);
     #pragma unroll
     for(i = 0; i<SHA256_DIGESTSIZE;i++) {
