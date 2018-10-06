@@ -1,10 +1,9 @@
 #ifndef _SHA2_H
 #define _SHA2_H
 
-#include "Common/Tcdefs.h"
-#include "Common/Endian.h"
-
-//#define SHA_64BIT
+#include <inttypes.h>
+#define __int32 int
+typedef unsigned __int32 uint_32t;
 
 /* define the hash functions that you need  */
 #define SHA_2   /* for dynamic hash length  */

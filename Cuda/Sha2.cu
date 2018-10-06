@@ -1,11 +1,3 @@
-#include "Common/Endian.h"
-#ifndef PLATFORM_BYTE_ORDER
-#define PLATFORM_BYTE_ORDER BYTE_ORDER
-#endif
-#ifndef IS_LITTLE_ENDIAN
-#define IS_LITTLE_ENDIAN LITTLE_ENDIAN
-#endif
-
 #include <string.h>     /* for memcpy() etc.        */
 
 #include "Sha2.cuh"
@@ -16,18 +8,10 @@ extern "C"
 #endif
 
 #define rotl32(x,n)   (((x) << n) | ((x) >> (32 - n)))
-// #define rotr32(x,n)   (((x) >> n) | ((x) << (32 - n)))
-#define rotr32(x, n) __funnelshift_r( (x), (x), (n) )
-//#define rotr32(x,n)  { unsigned int * y = __byte_perm(x, x, 0x3210+0x1111*(n/8)); printf("%x", y); return y; }
+#define rotr32(x,n)   (((x) >> n) | ((x) << (32 - n)))
 
 #if !defined(bswap_32)
 #define bswap_32(x) __byte_perm(x, x, 0x0123);
-#endif
-
-#if (PLATFORM_BYTE_ORDER == IS_LITTLE_ENDIAN)
-#define SWAP_BYTES
-#else
-#undef  SWAP_BYTES
 #endif
 
 #define ch(x,y,z)       ((z) ^ ((x) & ((y) ^ (z))))
@@ -44,12 +28,8 @@ extern "C"
 #if defined(SHA_224) || defined(SHA_256)
 #define SHA256_MASK (SHA256_BLOCK_SIZE - 1)
 
-#if defined(SWAP_BYTES)
 #define bsw_32(p,n) \
     { int _i = (n); while(_i--) ((uint_32t*)p)[_i] = bswap_32(((uint_32t*)p)[_i]); }
-#else
-#define bsw_32(p,n)
-#endif
 //__device__ void bsw_32(uint_32t *p, uint_32t i) {
 //  
 //  while(i--) {
@@ -108,6 +88,7 @@ __device__ VOID_RETURN sha256_compile(sha256_ctx ctx[1])
     uint_32t *p = ctx->wbuf, v[8];
     memcpy(v, ctx->hash, 8 * sizeof(uint_32t));
 
+//    #pragma unroll
     for(j = 0; j < 64; j+=16)
     {
 	for(mp = 0; mp < 16; mp++) {
@@ -204,20 +185,12 @@ __device__ static void sha_end1(unsigned char hval[], sha256_ctx ctx[1], const u
 
     /* extract the hash value as bytes in case the hash buffer is   */
     /* mislaigned for 32-bit words                                  */
-    // #pragma unroll
+    //#pragma unroll
     for(i = 0; i < hlen; ++i)
         hval[i] = (unsigned char)(ctx->hash[i >> 2] >> (8 * (~i & 3)));
 }
 
 #endif
-
-#if defined(SHA_256)
-
-__constant__ const uint_32t i256[8] =
-{
-    0x6a09e667ul, 0xbb67ae85ul, 0x3c6ef372ul, 0xa54ff53aul,
-    0x510e527ful, 0x9b05688cul, 0x1f83d9abul, 0x5be0cd19ul
-};
 
 __device__ VOID_RETURN sha256_begin(sha256_ctx ctx[1])
 {
@@ -230,7 +203,6 @@ __device__ VOID_RETURN sha256_begin(sha256_ctx ctx[1])
     ctx->hash[5] = 0x9b05688cul;
     ctx->hash[6] = 0x1f83d9abul;
     ctx->hash[7] = 0x5be0cd19ul;
-//    memcpy(ctx->hash, i256, 8 * sizeof(uint_32t));
 }
 
 __device__ VOID_RETURN sha256_end(unsigned char hval[], sha256_ctx ctx[1])
@@ -250,10 +222,6 @@ __device__ VOID_RETURN sha256(unsigned char hval[], const unsigned char data[], 
     sha256_hash(data, len, cx);
     sha_end1(hval, cx, SHA256_DIGEST_SIZE);
 }
-
-#endif
-
-#define CTX_256(x)  ((x)->uu->ctx256)
 
 #if defined(__cplusplus)
 }

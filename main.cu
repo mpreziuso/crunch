@@ -3,10 +3,8 @@
 #include "Cuda/PBKDF2.cu"
 
 #define ERRCHECK(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true,bool wait=true)
-{
-   if (code != cudaSuccess) 
-   {
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true,bool wait=true) {
+   if (code != cudaSuccess) {
       fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
       if (abort) exit(code);
    }
@@ -15,19 +13,11 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 #define SHA256_DIGESTSIZE 32
 #define SHA256_BLOCKSIZE 64
 
-
-__global__ void PBKDF2Kernel(int n, int c, unsigned char *out) {
-  unsigned char salt[17] = {
-	230,  88,  20, 228,
-	 56,  39,  89, 248,
-	 85,  80,   2, 158,
-	114,  61, 199, 231,
-                         0
-  }; 
+__global__ void PBKDF2Kernel(int n, unsigned char *out) {
   unsigned char passwd[22] = "governor washout beak";
   int pwd_len = sizeof(passwd) - 1;
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i<n; i += blockDim.x * gridDim.x) {
-    cuda_derive_key_sha256(passwd, pwd_len, salt, c, out, SHA256_DIGESTSIZE);
+    cuda_derive_key_sha256(passwd, pwd_len, &out[SHA256_DIGESTSIZE*i]);
   }
 }
 
@@ -35,7 +25,7 @@ int main() {
   cudaError_t err;
   int device = 0;
   int numSMs;
-  const int N = 1000;
+  const int N = 1;
 
   cudaDeviceProp props;
   err = cudaGetDeviceProperties(&props, device);
@@ -54,44 +44,43 @@ int main() {
   }
 
 
-    int blockSize;      // The launch configurator returned block size 
-    int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch 
-    int gridSize;       // The actual grid size needed, based on input size 
+  int blockSize;      // The launch configurator returned block size 
+  int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch 
+  int gridSize;       // The actual grid size needed, based on input size 
 
-    float time;
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, 0);
+  float time;
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start, 0);
 
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, PBKDF2Kernel, 0, N); 
+  cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, PBKDF2Kernel, 0, N); 
 
-    // Round up according to array size 
-    gridSize = (N + blockSize - 1) / blockSize; 
+  // Round up according to array size 
+  gridSize = (N + blockSize - 1) / blockSize; 
 
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&time, start, stop);
-    printf("Occupancy calculator elapsed time:  %3.3f ms \n", time);
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&time, start, stop);
+  printf("Occupancy calculator elapsed time:  %3.3f ms \n", time);
 
-  unsigned char *d_hash;
-  unsigned char h_hash[SHA256_DIGESTSIZE];
-  cudaMalloc(&d_hash, sizeof(unsigned char) * SHA256_DIGESTSIZE);
+  unsigned char *finalDestination;
+  cudaMallocManaged((void **)&finalDestination, N*SHA256_DIGESTSIZE);
   ERRCHECK(cudaGetLastError());
   printf("SMs: %d, X: %d, Y: %d\n", numSMs, 32*numSMs, 512);
   printf("grid: %d, min grid: %d, block: %d\n", gridSize, minGridSize, blockSize);
   //PBKDF2Kernel<<<1,1>>>(N, 100000, d_hash);
-  PBKDF2Kernel<<<gridSize,blockSize>>>(N, 100000, d_hash);
+  PBKDF2Kernel<<<gridSize,blockSize>>>(N, finalDestination);
   ERRCHECK(cudaDeviceSynchronize());
   ERRCHECK(cudaGetLastError());
-  cudaMemcpy(h_hash, d_hash, sizeof(unsigned char)*SHA256_DIGESTSIZE, cudaMemcpyDeviceToHost);
-  ERRCHECK(cudaGetLastError());
 
-  for(int i = 0; i < sizeof(h_hash); i++) {
-    printf("%02x ",h_hash[i]);
+  for(int i = 0; i < N; i++) {
+    for(int j = 0; j < SHA256_DIGESTSIZE; j++) {
+      printf("%02x ", finalDestination[i*SHA256_DIGESTSIZE+j]);
+    }
+    printf("\n");
   }
-  printf("\n");
-  cudaFree(d_hash);
+  cudaFree(finalDestination);
   cudaDeviceReset();
   return 0;
 }
