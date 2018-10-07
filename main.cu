@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <cmath>
+#include "pwd.c"
 #include "Cuda/PBKDF2.cu"
 
 #define ERRCHECK(ans) { gpuAssert((ans), __FILE__, __LINE__); }
@@ -14,10 +15,11 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 #define SHA256_BLOCKSIZE 64
 
 __global__ void PBKDF2Kernel(int n, unsigned char *out) {
+printf("x");
   unsigned char passwd[22] = "governor washout beak";
   int pwd_len = sizeof(passwd) - 1;
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i<n; i += blockDim.x * gridDim.x) {
-    cuda_derive_key_sha256(passwd, pwd_len, &out[SHA256_DIGESTSIZE*i]);
+//    cuda_derive_key_sha256(passwd, pwd_len, &out[SHA256_DIGESTSIZE*i]);
   }
 }
 
@@ -25,7 +27,7 @@ int main() {
   cudaError_t err;
   int device = 0;
   int numSMs;
-  const int N = 1;
+  const int N = 100000;
 
   cudaDeviceProp props;
   err = cudaGetDeviceProperties(&props, device);
@@ -66,6 +68,7 @@ int main() {
 
   unsigned char *finalDestination;
   cudaMallocManaged((void **)&finalDestination, N*SHA256_DIGESTSIZE);
+  cudaMallocManaged(passwords, sizeof(passwords));
   ERRCHECK(cudaGetLastError());
   printf("SMs: %d, X: %d, Y: %d\n", numSMs, 32*numSMs, 512);
   printf("grid: %d, min grid: %d, block: %d\n", gridSize, minGridSize, blockSize);
@@ -73,12 +76,11 @@ int main() {
   PBKDF2Kernel<<<gridSize,blockSize>>>(N, finalDestination);
   ERRCHECK(cudaDeviceSynchronize());
   ERRCHECK(cudaGetLastError());
-
   for(int i = 0; i < N; i++) {
     for(int j = 0; j < SHA256_DIGESTSIZE; j++) {
-      printf("%02x ", finalDestination[i*SHA256_DIGESTSIZE+j]);
+  //    printf("%02x ", finalDestination[i*SHA256_DIGESTSIZE+j]);
     }
-    printf("\n");
+  //  printf("\n");
   }
   cudaFree(finalDestination);
   cudaDeviceReset();
